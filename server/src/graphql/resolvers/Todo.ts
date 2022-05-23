@@ -11,6 +11,7 @@ import {
 } from "type-graphql";
 import { getRepository } from "typeorm";
 import { EncryptedID } from "../scalars/EncryptedID";
+import { FileUrl } from "../scalars/FileUrl";
 
 @ObjectType()
 class ReturnStructure {
@@ -20,10 +21,31 @@ class ReturnStructure {
   status: number;
 }
 
+@ObjectType()
+class TodoWithFilepath extends Todo {
+  @Field(() => FileUrl)
+  file: string;
+}
+
 @InputType()
 class InputIDString {
   @Field(() => EncryptedID)
   id: number;
+}
+
+@ObjectType()
+class NameType {
+  @Field(() => String)
+  firstname?: String;
+
+  @Field(() => String)
+  lastname?: String;
+}
+
+@ObjectType()
+class WrappedName extends NameType {
+  @Field(() => NameType)
+  name?: NameType;
 }
 
 @Resolver()
@@ -31,6 +53,53 @@ export class TodoResolver {
   @Query()
   ping(): string {
     return "hey";
+  }
+
+  @Query(() => WrappedName)
+  getName(): WrappedName {
+    const data = { firstname: "aazam", lastname: "mohd" };
+    const data2 = { name: { firstname: "aazam", lastname: "mohd" } };
+
+    return {
+      ...data,
+      ...data2,
+    };
+  }
+
+  @Query(() => [TodoWithFilepath])
+  async getFileURLx(): Promise<Array<TodoWithFilepath> | ReturnStructure> {
+    const todoRepo = getRepository(Todo);
+    const allData = await todoRepo.find();
+    // .catch((err) => {
+    //   return {
+    //     message: err.message,
+    //     status: 0,
+    //   };
+    // });
+
+    const data = allData?.map((data) => {
+      return { ...data, file: "me.jpg" };
+    });
+
+    return data;
+  }
+
+  @Query(() => [TodoWithFilepath])
+  async getFileURL(): Promise<Array<TodoWithFilepath> | ReturnStructure> {
+    const todoRepo = getRepository(Todo);
+    const allData = await todoRepo.find();
+    // .catch((err) => {
+    //   return {
+    //     message: err.message,
+    //     status: 0,
+    //   };
+    // });
+
+    const data = allData?.map((data) => {
+      return { ...data, file: "me.jpg" };
+    });
+
+    return data;
   }
 
   @Query(() => [Todo])
@@ -83,6 +152,7 @@ export class TodoResolver {
         status: 0,
       };
     });
+
     console.log(insertedData);
 
     return insertedData;
